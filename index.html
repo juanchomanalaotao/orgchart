@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Programming Department – Org Chart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --line:#a9c8f9;
+    --flow:#4f6bff;
+    --gold:#f0a83e;
+    --navy:#17309a;
+    --royal:#5b73f2;
+    --light:#aecdfb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#fff}
+  body{
+    font-family:'Montserrat','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+    display:grid;place-items:center;overflow:hidden;
+  }
+
+  /* ====== Canvas (fixed design size, auto-scaled to fit the screen) ====== */
+  #viewport{position:relative}
+  #stage{
+    position:absolute;left:0;top:0;
+    width:2450px;height:1030px;
+    transform-origin:0 0;
+  }
+
+  /* ====== Lines ====== */
+  #lines{position:absolute;inset:0;width:100%;height:100%;z-index:1;overflow:visible;pointer-events:none}
+  #lines path{fill:none;stroke-linejoin:round}
+  .line{
+    stroke:var(--line);stroke-width:3;stroke-linecap:butt;
+    stroke-dasharray:var(--L);stroke-dashoffset:var(--L);
+  }
+  .flow{
+    stroke:var(--flow);stroke-width:5;stroke-linecap:round;opacity:0;
+    filter:drop-shadow(0 0 5px rgba(79,107,255,.9));
+  }
+  .play .line{animation:draw var(--dur) cubic-bezier(.65,0,.35,1) var(--delay) forwards}
+  .play .flow{animation:flowIn .01s linear var(--fdelay) forwards, flowMove var(--fdur) linear var(--fdelay) infinite}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes flowIn{to{opacity:1}}
+  @keyframes flowMove{
+    0%{stroke-dashoffset:26px}
+    75%,100%{stroke-dashoffset:calc(var(--L) * -1)}
+  }
+
+  /* ====== Node (card + avatar + dots + text) ====== */
+  .node{
+    position:absolute;z-index:3;opacity:0;
+    transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .node:hover{transform:translateY(-8px)}
+  .play .node{opacity:1;animation:pop .9s cubic-bezier(.2,1.25,.4,1) var(--delay) backwards}
+  @keyframes pop{
+    0%{opacity:0;transform:translateY(40px) scale(.82)}
+    60%{opacity:1}
+    100%{opacity:1;transform:none}
+  }
+
+  .card{
+    position:absolute;inset:0;border-radius:24px;
+    background:var(--bg);
+    box-shadow:0 10px 24px -14px rgba(23,48,154,.45);
+    transition:box-shadow .35s;
+  }
+  .node:hover .card{box-shadow:0 22px 34px -16px rgba(23,48,154,.55)}
+
+  /* halftone dots behind avatar */
+  .dots{
+    position:absolute;border-radius:50%;z-index:0;pointer-events:none;
+    background-image:radial-gradient(circle, var(--dot) 1.7px, transparent 2.2px);
+    background-size:8px 8px;
+    -webkit-mask-image:radial-gradient(circle closest-side, #000 40%, transparent 100%);
+            mask-image:radial-gradient(circle closest-side, #000 40%, transparent 100%);
+    opacity:.9;
+  }
+  .play .dots{animation:dotsIn 1.2s ease var(--delay) backwards, dotsSpin 40s linear calc(var(--delay) + 1s) infinite, dotsBreath 4s ease-in-out calc(var(--delay) + 1s) infinite}
+  @keyframes dotsIn{from{opacity:0;scale:.4}to{opacity:.9;scale:1}}
+  @keyframes dotsSpin{to{rotate:360deg}}
+  @keyframes dotsBreath{0%,100%{opacity:.55}50%{opacity:1}}
+
+  .card{z-index:1}
+
+  .avatar{
+    position:absolute;z-index:3;border-radius:50%;
+    border:6px solid var(--ring);background:#fff;overflow:hidden;
+  }
+  .play .avatar{
+    animation:avatarIn .8s cubic-bezier(.2,1.4,.4,1) calc(var(--delay) + .25s) backwards,
+              ring 2.8s ease-out calc(var(--delay) + 1.4s) infinite;
+  }
+  @keyframes avatarIn{from{transform:scale(0) rotate(-40deg);opacity:0}to{transform:none;opacity:1}}
+  @keyframes ring{
+    0%{box-shadow:0 0 0 0 rgba(var(--glow),.55)}
+    70%,100%{box-shadow:0 0 0 16px rgba(var(--glow),0)}
+  }
+  .photo{
+    position:absolute;inset:0;
+    background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23eef2ff'/><circle cx='50' cy='38' r='17' fill='%23b4c2ee'/><path d='M14 100c0-22 16-36 36-36s36 14 36 36z' fill='%23b4c2ee'/></svg>") center/cover no-repeat;
+  }
+  .photo img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;
+    opacity:0;transition:opacity .6s, transform .6s;
+  }
+  .photo img.ok{opacity:1}
+  .node:hover .photo img{transform:scale(1.06)}
+
+  .text{
+    position:absolute;left:0;right:0;z-index:2;text-align:center;color:var(--fg);
+    line-height:1.15;padding:0 10px;
+  }
+  .play .text{animation:textIn .7s ease calc(var(--delay) + .45s) backwards}
+  @keyframes textIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .name{font-weight:700;text-transform:uppercase;letter-spacing:.2px;white-space:nowrap}
+  .title{font-weight:600;white-space:nowrap}
+
+  /* themes */
+  .t-gold {--bg:var(--gold); --fg:#fff;    --ring:var(--gold);  --glow:240,168,62;  --dot:#8d8d8d}
+  .t-navy {--bg:var(--navy); --fg:#fff;    --ring:var(--navy);  --glow:23,48,154;   --dot:#8d8d8d}
+  .t-royal{--bg:var(--royal);--fg:#fff;    --ring:#8da0f8;      --glow:91,115,242;  --dot:var(--royal)}
+  .t-light{--bg:var(--light);--fg:#1f2340; --ring:#b9d3fb;      --glow:91,115,242;  --dot:var(--royal)}
+  .t-light.dots-gold{--dot:var(--gold);--glow:240,168,62}
+
+  /* replay button */
+  #replay{
+    position:fixed;right:18px;bottom:18px;z-index:10;
+    font:600 13px 'Montserrat',system-ui,sans-serif;
+    background:var(--royal);color:#fff;border:0;border-radius:999px;
+    padding:10px 18px;cursor:pointer;box-shadow:0 6px 16px -6px rgba(91,115,242,.7);
+    transition:transform .2s, background .2s;
+  }
+  #replay:hover{transform:translateY(-2px);background:var(--navy)}
+
+  @media (prefers-reduced-motion:reduce){
+    .line{stroke-dashoffset:0!important;animation:none!important}
+    .flow{display:none}
+    .node{opacity:1!important}
+    .play .node,.play .dots,.play .avatar,.play .text{animation:none!important}
+  }
+</style>
+</head>
+<body>
+
+<div id="viewport">
+  <div id="stage" class="play">
+    <svg id="lines" viewBox="0 0 2450 1030"></svg>
+  </div>
+</div>
+
+<button id="replay" type="button">↻ Replay animation</button>
+
+<script>
+/* =====================================================================
+   PHOTOS
+   Ilagay ang mga picture sa folder na  "images"  katabi ng file na ito.
+   Pangalan ng file = value ng `photo` sa ibaba (walang extension).
+   Tinatanggap: .jpg  .jpeg  .png  .webp
+   Halimbawa:  images/steven.jpg , images/karlo.png ...
+   (Hangga't walang picture, placeholder na silhouette ang lalabas.)
+   ===================================================================== */
+const PEOPLE = [
+  // x,y,w,h = card | cx,cy,d = avatar center & diameter | delay = kailan lalabas (seconds)
+  { photo:'images/steven',   name:'Steven Andrew Yang',    title:'President',            theme:'gold',  x:56,   y:142, w:386, h:160, cx:237,  cy:121, d:196, gap:6,  ns:25, ts:29, tg:0, delay:0.2 },
+  { photo:'images/karlo',    name:'Karlo Alfonso',         title:'AVP - of IT',          theme:'navy',  x:535,  y:291, w:378, h:160, cx:710,  cy:283, d:130, gap:13, ns:23, ts:20, tg:8, delay:1.5 },
+  { photo:'images/juanicio', name:'Juanicio Manalaotao',   title:'Programming Manager',  theme:'royal', x:975,  y:437, w:375, h:121, cx:1157, cy:430, d:108, gap:3,  ns:21, ts:19, tg:8, delay:3.0 },
+  { photo:'images/kirby',    name:'Kirby Jade Labalan',    title:'Senior Programmer 1',  theme:'light', x:1495, y:561, w:340, h:145, cx:1665, cy:550, d:104, gap:12, ns:21, ts:19, tg:0, delay:4.2 },
+
+  { photo:'images/brian',    name:'Brian James Daulong',   title:'Junior Programmer 3',  theme:'light', x:129,  y:836, w:340, h:145, cx:299,  cy:824, d:104, gap:12, ns:21, ts:19, tg:0, delay:5.6, dots:'gold' },
+  { photo:'images/justine',  name:'Justine Podiotan',      title:'Junior Programmer 2',  theme:'light', x:477,  y:836, w:340, h:145, cx:648,  cy:824, d:104, gap:12, ns:21, ts:19, tg:0, delay:5.2, dots:'gold' },
+  { photo:'images/reforma',  name:'Mark Reforma',          title:'Junior Programmer 1',  theme:'light', x:947,  y:823, w:340, h:145, cx:1117, cy:812, d:104, gap:12, ns:21, ts:19, tg:0, delay:4.6, dots:'gold' },
+  { photo:'images/valena',   name:'John Allen Troy Valena',title:'Junior Programmer 1',  theme:'light', x:1311, y:821, w:340, h:145, cx:1480, cy:810, d:104, gap:12, ns:21, ts:19, tg:0, delay:5.0, dots:'gold' },
+  { photo:'images/balaba',   name:'Mark Louie Balaba',     title:'Junior Programmer 1',  theme:'light', x:1666, y:819, w:340, h:145, cx:1836, cy:807, d:104, gap:12, ns:21, ts:19, tg:0, delay:5.3, dots:'gold' },
+  { photo:'images/napoles',  name:'CJ Napoles',            title:'Junior Programmer 1',  theme:'light', x:2021, y:819, w:340, h:145, cx:2192, cy:807, d:104, gap:12, ns:21, ts:19, tg:0, delay:5.6, dots:'gold' },
+];
+
+/* Lines: d = SVG path, delay/dur = draw animation (seconds) */
+const LINES = [
+  { d:'M442 213 H710 V250',                              delay:0.9, dur:0.8 },  // President → AVP
+  { d:'M725 451 V497 Q725 517 745 517 H975',             delay:2.3, dur:0.9 },  // AVP → Manager
+  { d:'M1350 467 H1665 V505',                            delay:3.7, dur:0.7 },  // Manager → Senior
+  { d:'M1117 558 V770',                                  delay:3.7, dur:0.9 },  // Manager → stem (Reforma)
+  { d:'M1117 715 H319 Q299 715 299 735 V770',            delay:4.4, dur:1.1 },  // bus left  → Brian
+  { d:'M1117 715 H2172 Q2192 715 2192 735 V770',         delay:4.4, dur:1.1 },  // bus right → CJ
+  { d:'M648 715 V770',                                   delay:5.0, dur:0.4 },  // → Justine
+  { d:'M1479 715 V770',                                  delay:4.8, dur:0.4 },  // → John Allen
+  { d:'M1835 715 V770',                                  delay:5.1, dur:0.4 },  // → Mark Louie
+];
+
+const W = 2450, H = 1030;
+const stage = document.getElementById('stage');
+const svg   = document.getElementById('lines');
+const NS = 'http://www.w3.org/2000/svg';
+
+/* ---------- lines ---------- */
+LINES.forEach(l => {
+  const base = document.createElementNS(NS,'path');
+  base.setAttribute('d', l.d);
+  base.setAttribute('class','line');
+  svg.appendChild(base);
+  const L = Math.ceil(base.getTotalLength());
+  base.style.setProperty('--L', L + 'px');
+  base.style.setProperty('--delay', l.delay + 's');
+  base.style.setProperty('--dur', l.dur + 's');
+
+  const flow = document.createElementNS(NS,'path');
+  flow.setAttribute('d', l.d);
+  flow.setAttribute('class','flow');
+  flow.style.strokeDasharray = '26px ' + (L + 60) + 'px';
+  flow.style.setProperty('--L', L + 'px');
+  flow.style.setProperty('--fdelay', (l.delay + l.dur + 0.2) + 's');
+  flow.style.setProperty('--fdur', ((L / 170) / 0.75 + 1.2).toFixed(2) + 's');
+  svg.appendChild(flow);
+});
+
+/* ---------- people ---------- */
+const EXTS = ['jpg','jpeg','png','webp'];
+function loadPhoto(box, base){
+  const hasExt = /\.(jpe?g|png|webp|gif|svg)$/i.test(base);
+  const list = hasExt ? [base] : EXTS.map(e => base + '.' + e);
+  let i = 0;
+  const img = new Image();
+  img.alt = '';
+  img.onload  = () => img.classList.add('ok');
+  img.onerror = () => { i++; if (i < list.length) img.src = list[i]; else img.remove(); };
+  img.src = list[0];
+  box.appendChild(img);
+}
+
+PEOPLE.forEach(p => {
+  const n = document.createElement('div');
+  n.className = 'node t-' + p.theme;
+  Object.assign(n.style, { left:p.x+'px', top:p.y+'px', width:p.w+'px', height:p.h+'px' });
+  n.style.setProperty('--delay', p.delay + 's');
+  if (p.dots === 'gold') n.classList.add('dots-gold');
+
+  const dx = p.cx - p.x, dy = p.cy - p.y;
+  n.innerHTML = `
+    <div class="dots" style="width:${p.d*2}px;height:${p.d*2}px;left:${dx-p.d}px;top:${dy-p.d}px"></div>
+    <div class="card"></div>
+    <div class="avatar" style="width:${p.d}px;height:${p.d}px;left:${dx-p.d/2}px;top:${dy-p.d/2}px" title="${p.photo}">
+      <div class="photo"></div>
+    </div>
+    <div class="text" style="top:${p.cy + p.d/2 + p.gap - p.y}px">
+      <div class="name"  style="font-size:${p.ns}px">${p.name}</div>
+      <div class="title" style="font-size:${p.ts}px;margin-top:${p.tg}px">${p.title}</div>
+    </div>`;
+  stage.appendChild(n);
+  loadPhoto(n.querySelector('.photo'), p.photo);
+});
+
+/* ---------- responsive scaling ---------- */
+const viewport = document.getElementById('viewport');
+function fit(){
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  stage.style.transform = `scale(${s})`;
+  viewport.style.width  = W * s + 'px';
+  viewport.style.height = H * s + 'px';
+}
+window.addEventListener('resize', fit);
+fit();
+
+/* ---------- replay ---------- */
+document.getElementById('replay').addEventListener('click', () => {
+  stage.classList.remove('play');
+  void stage.offsetWidth;            // reflow
+  stage.classList.add('play');
+});
+</script>
+</body>
+</html>
